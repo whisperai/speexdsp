@@ -130,6 +130,7 @@ struct SpeexResamplerState_ {
    spx_uint32_t oversample;
    int          initialised;
    int          started;
+   float        upsample_bw; /// Added by brant@whisper.ai
 
    /* These are per-channel */
    spx_int32_t  *last_sample;
@@ -635,7 +636,10 @@ static int update_filter(SpeexResamplerState *st)
          st->oversample = 1;
    } else {
       /* up-sampling */
-      st->cutoff = quality_map[st->quality].upsample_bandwidth;
+      if (st->upsample_bw < 0.0f) // unchanged from init
+        st->cutoff = quality_map[st->quality].upsample_bandwidth;
+      else
+        st->cutoff = st->upsample_bw;
    }
 
 #ifdef RESAMPLE_FULL_SINC_TABLE
@@ -833,6 +837,7 @@ EXPORT SpeexResamplerState *speex_resampler_init_frac(spx_uint32_t nb_channels, 
    st->out_stride = 1;
 
    st->buffer_size = 160;
+   st->upsample_bw = -1.0f; // less than 0.0f makes use of default value
 
    /* Per channel data */
    if (!(st->last_sample = (spx_int32_t*)speex_alloc(nb_channels*sizeof(spx_int32_t))))
@@ -1157,6 +1162,18 @@ EXPORT int speex_resampler_set_quality(SpeexResamplerState *st, int quality)
    if (st->quality == quality)
       return RESAMPLER_ERR_SUCCESS;
    st->quality = quality;
+   if (st->initialised)
+      return update_filter(st);
+   return RESAMPLER_ERR_SUCCESS;
+}
+
+EXPORT int speex_resampler_set_upsampler_bw(SpeexResamplerState *st, float bw)
+{
+   if (bw <= 0.0f || bw >= 1.0f)
+      return RESAMPLER_ERR_INVALID_ARG;
+   if (st->upsample_bw == bw)
+      return RESAMPLER_ERR_SUCCESS;
+   st->upsample_bw = bw;
    if (st->initialised)
       return update_filter(st);
    return RESAMPLER_ERR_SUCCESS;

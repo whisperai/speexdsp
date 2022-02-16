@@ -269,6 +269,19 @@ void speex_resampler_get_ratio(SpeexResamplerState *st,
 int speex_resampler_set_quality(SpeexResamplerState *st,
                                  int quality);
 
+/** Set (change) the upsampler's bw
+ * @param st    Resampler State
+ * @param bw    The normalized bw for the upsampling filter
+ * @author brant@whisper.ai
+ * @brief   This functionality was added to support the Whisper ASRC. The ASRC
+ * makes use of 'line' interpolation, which to avoid distortion, requires the
+ * signal that's being resampled to be 'oversampled' by a healthy amount.  Most
+ * ASRC use cases involve resampling from 44.1kHz/48kHz -> 24kHz, so a good
+ * amount of the required oversampling can be achieved by simply changing the
+ * prototype filter used for the initial upsampling operation.
+ */
+int speex_resampler_set_upsampler_bw(SpeexResamplerState *st, float bw);
+
 /** Get the conversion quality.
  * @param st Resampler state
  * @param quality Resampling quality between 0 and 10, where 0 has poor
